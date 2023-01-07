@@ -2,7 +2,7 @@
  * @Author: Quinn Tao @t-quinn-t 
  * @Date: 2023-01-06 15:44:40 
  * @Last Modified by: Quinn Tao
- * @Last Modified time: 2023-01-06 16:09:30
+ * @Last Modified time: 2023-01-06 16:12:30
  */
 use clap::{Parser, Subcommand, Args};
 
@@ -29,7 +29,7 @@ pub struct AddCmd {
     name: String,
 
     /// Amount of the record
-    amount: i32,
+    amount: f32,
 
     /// Date of this record 
     /// 
@@ -89,7 +89,7 @@ pub struct ModCmd {
 
     /// Amount of the record
     #[arg(short, long)]
-    amount: Option<i32>,
+    amount: Option<f32>,
 
     /// Date of this record 
     /// 
