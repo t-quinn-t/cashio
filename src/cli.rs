@@ -2,7 +2,7 @@
  * @Author: Quinn Tao @t-quinn-t 
  * @Date: 2023-01-06 15:44:40 
  * @Last Modified by: Quinn Tao
- * @Last Modified time: 2023-01-06 16:12:30
+ * @Last Modified time: 2023-01-06 23:11:07
  */
 use clap::{Parser, Subcommand, Args};
 
@@ -29,7 +29,7 @@ pub struct AddCmd {
     name: String,
 
     /// Amount of the record
-    amount: f32,
+    amount: i32,
 
     /// Date of this record 
     /// 
@@ -56,6 +56,10 @@ pub struct AddCmd {
 pub struct ListCmd {
     /// Fuzzy find search string, applied to names and descriptions
     query: Option<String>,
+
+    /// Specify an id 
+    #[arg(short, long)]
+    id: Option<i32>,
 
     /// Specify a category
     #[arg(short, default_value = "default")]
@@ -89,7 +93,7 @@ pub struct ModCmd {
 
     /// Amount of the record
     #[arg(short, long)]
-    amount: Option<f32>,
+    amount: Option<i32>,
 
     /// Date of this record 
     /// 

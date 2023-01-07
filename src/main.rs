@@ -2,7 +2,7 @@
  * @Author: Quinn Tao @t-quinn-t 
  * @Date: 2023-01-06 15:50:11 
  * @Last Modified by: Quinn Tao
- * @Last Modified time: 2023-01-06 16:10:03
+ * @Last Modified time: 2023-01-06 23:42:31
  */
 
 
@@ -20,6 +20,7 @@ fn main() {
     match cli.cmd {
         Commands::Add(cmd) => {
             debug!("add command {:?}", cmd);
+        
         },
         Commands::Ls(cmd) => {
             debug!("ls command {:?}", cmd);
@@ -32,3 +33,5 @@ fn main() {
         }
     }
 }
+
+
