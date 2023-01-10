@@ -1,9 +1,9 @@
 use std::{fmt::Display, path::PathBuf};
 
 use anyhow::{Ok, Result};
-use chrono::NaiveDate;
-use log::{info, debug};
-use rusqlite::{params, Connection};
+use chrono::{NaiveDate, Date, DateTime};
+use log::{info, debug, Record};
+use rusqlite::{params, Connection, ToSql};
 
 use crate::config::{self, db_path, test_db_path};
 
@@ -58,7 +58,7 @@ impl LsQueryOptions {
         self.id = Some(id);
         self
     }
-
+    
     pub fn fuzzy(&mut self, fuzzy: &str) -> &Self {
         self.fuzzy = Some(String::from(fuzzy));
         self
@@ -105,23 +105,45 @@ impl Repo {
     
     pub fn insert(&self, record: &Record) -> Result<()> {
         let conn = Connection::open(config::db_path()?)?;
-        let sql = "INSERT INTO records (name, cents, date, category, description) values (
-
-    )";
-
+        let sql = "INSERT INTO records (name, cents, date, category, description) values (?1, ?2
+    , ?3, ?4, ?5)";
+        conn.execute(sql, params![record.name, record.cents, record.date.format("%Y-%m-%d").to_string(), record.category, record.description])?;
         Ok(())
     }
-
+    
     pub fn list_all(&self) -> Result<Vec<Record>> {
         let conn = Connection::open(config::db_path()?)?;
+        
+        let sql = "SELECT * FROM records";
+        let mut stmt = conn.prepare(sql)?;
+        let mapping_fn = |row:& rusqlite::Row| {
+            let date_string:String = row.get(3)?;
+            let date = NaiveDate::parse_from_str(&date_string, "%Y-%m-%d")?;
+            Ok(Record {
+                id: row.get(0)?,
+                name: row.get(1)?,
+                cents: row.get(2)?,
+                date,
+                category: row.get(4)?,
+                description: row.get(5)?,
+            })
+        }
+        let rows = stmt.query_map([], |row| {
+            // ? does not work here as here we need a rusqlite::Result ...
+            let record = mapping_fn(row);
+            if record.is_err() {
+                return rusqlite::Error::InvalidColumnName(String::from(""))
+            }
+            return rusqlite::Result::Ok(r)
+        })?;
         todo!()
-        // Ok(Vec::new())
     }
 
     pub fn modify(&self, record: &Record) -> Result<Record> {
         let conn = Connection::open(config::db_path()?)?;
         todo!()
     }
+
 }
 #[cfg(test)]
 mod test_repo {
@@ -163,5 +185,12 @@ mod test_repo {
         let r = repo.init();
         assert!(r.is_ok());
         // Add all these records into test database
+
+        repo.insert(&r0).unwrap();
+        repo.insert(&r1).unwrap();
+        repo.insert(&r2).unwrap();
+        
+        let ls_result = repo.list_all().unwrap();
+        assert_eq!(ls_result.len(), 3);
     }
 }
