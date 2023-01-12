@@ -1,10 +1,9 @@
 use std::{fmt::Display, path::PathBuf};
 
 use anyhow::{Ok, Result};
-use chrono::{NaiveDate, Date, DateTime};
-use log::{info, debug, Record};
-use rusqlite::{params, Connection, ToSql};
-
+use chrono::NaiveDate;
+use rusqlite::{params, Connection};
+use log::*;
 use crate::config::{self, db_path, test_db_path};
 
 #[derive(Debug)]
@@ -127,16 +126,26 @@ impl Repo {
                 category: row.get(4)?,
                 description: row.get(5)?,
             })
-        }
+        };
         let rows = stmt.query_map([], |row| {
             // ? does not work here as here we need a rusqlite::Result ...
+            // TODO: move repositories to a module where only rusqlite::Result is used
             let record = mapping_fn(row);
             if record.is_err() {
-                return rusqlite::Error::InvalidColumnName(String::from(""))
+                return Err(rusqlite::Error::InvalidColumnName(String::from("")))
             }
-            return rusqlite::Result::Ok(r)
+            return rusqlite::Result::Ok(record.unwrap())
         })?;
-        todo!()
+        
+        let mut rows_vec = Vec::new();
+        for row in rows {
+            if row.is_ok() {
+                rows_vec.push(row.unwrap())
+            } 
+        }
+
+        Ok(rows_vec)
+            
     }
 
     pub fn modify(&self, record: &Record) -> Result<Record> {
@@ -185,7 +194,8 @@ mod test_repo {
         let r = repo.init();
         assert!(r.is_ok());
         // Add all these records into test database
-
+    
+        println!("Adding all records");
         repo.insert(&r0).unwrap();
         repo.insert(&r1).unwrap();
         repo.insert(&r2).unwrap();
