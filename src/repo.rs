@@ -3,7 +3,6 @@ use std::{fmt::Display, path::PathBuf};
 use anyhow::{Ok, Result};
 use chrono::NaiveDate;
 use rusqlite::{params, Connection};
-use log::*;
 use crate::config::{self, db_path, test_db_path};
 
 #[derive(Debug)]
@@ -98,12 +97,12 @@ impl Repo {
             category CHAR(50),
             description TEXT
         )";
-        let k = conn.execute(sql, ())?;
+        conn.execute(sql, ())?;
         Ok(())
     }
     
     pub fn insert(&self, record: &Record) -> Result<()> {
-        let conn = Connection::open(config::db_path()?)?;
+        let conn = Connection::open(self.0.as_path())?;
         let sql = "INSERT INTO records (name, cents, date, category, description) values (?1, ?2
     , ?3, ?4, ?5)";
         conn.execute(sql, params![record.name, record.cents, record.date.format("%Y-%m-%d").to_string(), record.category, record.description])?;
@@ -111,7 +110,7 @@ impl Repo {
     }
     
     pub fn list_all(&self) -> Result<Vec<Record>> {
-        let conn = Connection::open(config::db_path()?)?;
+        let conn = Connection::open(self.0.as_path())?;
         
         let sql = "SELECT * FROM records";
         let mut stmt = conn.prepare(sql)?;
