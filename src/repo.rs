@@ -9,6 +9,7 @@ use crate::config::{self, db_path, test_db_path};
 struct Repo(PathBuf);
 
 /// Data abstraction for a single record
+#[derive(PartialEq, Debug)]
 pub struct Record {
     pub id: i32,
     pub name: String,
@@ -156,36 +157,33 @@ impl Repo {
 #[cfg(test)]
 mod test_repo {
     use super::Record;
-    use chrono::{Local, NaiveDate};
+    use chrono::{Local, NaiveDate, NaiveDateTime};
 
     #[test]
-    fn test_repo() {
-        let r0 = Record {
-            id: 0,
-            name: String::from("r0"),
-            cents: -1000,
-            date: Local::now().date_naive(),
-            category: String::from("default"),
-            description: String::from("Description for id 0"),
-        };
+    fn test_records_repo() {
+        
+        let num_records = 100;
+        let mut records = Vec::with_capacity(100);
 
-        let r1 = Record {
-            id: 1,
-            name: String::from("r1"),
-            cents: 32032,
-            date: NaiveDate::from_ymd_opt(2000, 10, 30).unwrap(),
-            category: String::from("default"),
-            description: String::from("Description for id 1"),
-        };
-
-        let r2 = Record {
-            id: 2,
-            name: String::from("r2"),
-            cents: -1190,
-            date: NaiveDate::from_ymd_opt(2022, 12, 1).unwrap(),
-            category: String::from("test"),
-            description: String::from("Description for id 2"),
-        };
+        let categories = vec!["default", "grocery", "gifts", "utility"];
+        let description_suffixs = vec!["Normal Text:", "Other Text:"];
+        for i in 0_usize..num_records {
+            let name = i.to_string();
+            let cents = i as i32 * 100 * (1 - i as i32 % 2 * 2);
+            let date = Local::now().naive_local().date();
+            let category = String::from(*categories.get(i % categories.len()).unwrap());
+            let mut description = String::from(*description_suffixs.get(i % description_suffixs.len()).unwrap());
+            description.push_str("Common Description");
+            let record = Record {
+                id: i as i32,
+                name,
+                cents: cents as i32,
+                date,
+                category,
+                description
+            };
+            records.push(record);
+        }
 
         let repo = super::Repo::test();
         assert!(repo.is_ok());
@@ -195,11 +193,13 @@ mod test_repo {
         // Add all these records into test database
     
         println!("Adding all records");
-        repo.insert(&r0).unwrap();
-        repo.insert(&r1).unwrap();
-        repo.insert(&r2).unwrap();
+        for r in records.iter() {
+            repo.insert(r).unwrap();
+        }
         
         let ls_result = repo.list_all().unwrap();
-        assert_eq!(ls_result.len(), 3);
+        for (i, rr) in ls_result.iter().enumerate() {
+            assert_eq!(rr, records.get(i).unwrap())
+        }
     }
 }
