@@ -157,7 +157,7 @@ impl Repo {
 #[cfg(test)]
 mod test_repo {
     use super::Record;
-    use chrono::{Local, NaiveDate, NaiveDateTime};
+    use chrono::Local;
 
     #[test]
     fn test_records_repo() {
@@ -190,7 +190,7 @@ mod test_repo {
         let repo = repo.unwrap();
         let r = repo.init();
         assert!(r.is_ok());
-        // Add all these records into test database
+        // Add all these records into test databas
     
         println!("Adding all records");
         for r in records.iter() {
