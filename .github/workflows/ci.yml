@@ -1,0 +1,9 @@
+name: CashIO CI 
+run-name: ${{github.actor}} running CI 
+on: [push]
+jobs: 
+  CI:
+    runs-on: ubuntu-latest 
+    steps: 
+      - run: echo "Running Tests"
+      - run: cargo test
