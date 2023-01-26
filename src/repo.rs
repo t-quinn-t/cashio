@@ -3,10 +3,9 @@ use std::{fmt::Display, path::PathBuf};
 use anyhow::{Ok, Result};
 use chrono::NaiveDate;
 use rusqlite::{params, Connection};
-use crate::config::{self, db_path, test_db_path};
 
 #[derive(Debug)]
-struct Repo(PathBuf);
+struct Repo(Connection);
 
 /// Data abstraction for a single record
 #[derive(PartialEq, Debug)]
@@ -80,16 +79,17 @@ impl LsQueryOptions {
 }
 
 impl Repo {
-    pub fn new() -> Result<Self> {
-        Ok(Repo(db_path()?))
-    }
-
-    fn test() -> Result<Self> {
-        Ok(Repo(test_db_path()?))
+    pub fn new(pathOpt: Option<PathBuf>) -> Result<Self> {
+        let conn: Connection;
+        if let Some(p) = pathOpt {
+            conn = Connection::open(p)?;
+        } else {
+            conn = Connection::open_in_memory()?;
+        }
+        Ok(Repo(conn))
     }
 
     pub fn init(&self) -> Result<()> {
-        let conn = Connection::open(self.0.as_path())?;
         let sql = "CREATE TABLE IF NOT EXISTS records (
             id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
             name CHAR(50) NOT NULL,
@@ -98,23 +98,21 @@ impl Repo {
             category CHAR(50),
             description TEXT
         )";
-        conn.execute(sql, ())?;
+        self.0.execute(sql, ())?;
         Ok(())
     }
     
     pub fn insert(&self, record: &Record) -> Result<()> {
-        let conn = Connection::open(self.0.as_path())?;
         let sql = "INSERT INTO records (name, cents, date, category, description) values (?1, ?2
     , ?3, ?4, ?5)";
-        conn.execute(sql, params![record.name, record.cents, record.date.format("%Y-%m-%d").to_string(), record.category, record.description])?;
+        self.0.execute(sql, params![record.name, record.cents, record.date.format("%Y-%m-%d").to_string(), record.category, record.description])?;
         Ok(())
     }
     
     pub fn list_all(&self) -> Result<Vec<Record>> {
-        let conn = Connection::open(self.0.as_path())?;
         
         let sql = "SELECT * FROM records";
-        let mut stmt = conn.prepare(sql)?;
+        let mut stmt = self.0.prepare(sql)?;
         let mapping_fn = |row:& rusqlite::Row| {
             let date_string:String = row.get(3)?;
             let date = NaiveDate::parse_from_str(&date_string, "%Y-%m-%d")?;
@@ -149,7 +147,6 @@ impl Repo {
     }
 
     pub fn modify(&self, record: &Record) -> Result<Record> {
-        let conn = Connection::open(config::db_path()?)?;
         todo!()
     }
 
@@ -158,6 +155,7 @@ impl Repo {
 mod test_repo {
     use super::Record;
     use chrono::Local;
+    use rusqlite::Connection;
 
     #[test]
     fn test_records_repo() {
@@ -175,7 +173,7 @@ mod test_repo {
             let mut description = String::from(*description_suffixs.get(i % description_suffixs.len()).unwrap());
             description.push_str("Common Description");
             let record = Record {
-                id: i as i32,
+                id: (i+1) as i32,
                 name,
                 cents: cents as i32,
                 date,
@@ -185,7 +183,7 @@ mod test_repo {
             records.push(record);
         }
 
-        let repo = super::Repo::test();
+        let repo = super::Repo::new(None);
         assert!(repo.is_ok());
         let repo = repo.unwrap();
         let r = repo.init();

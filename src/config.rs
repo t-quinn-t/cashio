@@ -8,8 +8,3 @@ pub fn db_path() -> Result<PathBuf> {
     Ok(p)
 }
 
-pub fn test_db_path() -> Result<PathBuf> { 
-    let mut p = PathBuf::new();
-    p.push("test.db");
-    Ok(p)
-}
