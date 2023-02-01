@@ -155,7 +155,6 @@ impl Repo {
 mod test_repo {
     use super::Record;
     use chrono::Local;
-    use rusqlite::Connection;
 
     #[test]
     fn test_records_repo() {
@@ -190,7 +189,6 @@ mod test_repo {
         assert!(r.is_ok());
         // Add all these records into test databas
     
-        println!("Adding all records");
         for r in records.iter() {
             repo.insert(r).unwrap();
         }

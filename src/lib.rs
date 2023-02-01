@@ -1,4 +1,4 @@
 pub mod cli;
-pub mod mapper;
+pub mod parser;
 pub mod repo;
 pub mod config;
