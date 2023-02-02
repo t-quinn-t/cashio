@@ -1,22 +1,12 @@
-use std::{fmt::Display, path::PathBuf};
+use std::fmt::Display;
 
-use anyhow::{Ok, Result};
-use chrono::NaiveDate;
-use rusqlite::{params, Connection};
+use anyhow::{Result, Ok};
+use diesel::SqliteConnection;
+use diesel::prelude::*;
+use crate::model::Record;
 
-#[derive(Debug)]
-struct Repo(Connection);
-
-/// Data abstraction for a single record
-#[derive(PartialEq, Debug)]
-pub struct Record {
-    pub id: i32,
-    pub name: String,
-    pub cents: i32,
-    pub date: NaiveDate,
-    pub category: String,
-    pub description: String,
-}
+struct Repo(SqliteConnection);
+struct URL(String);
 
 pub enum RepoError {
     ConnectionFailed(String),
@@ -30,127 +20,39 @@ impl Display for RepoError {
     }
 }
 
-#[derive(Debug)]
-pub struct LsQueryOptions {
-    id: Option<i32>,
-    fuzzy: Option<String>,
-    date_from: Option<NaiveDate>,
-    date_to: Option<NaiveDate>,
-    category: Option<String>,
-}
-
-impl LsQueryOptions {
-    /// Creates an empty LsQueryOption
-    pub fn new() -> Self {
-        LsQueryOptions {
-            id: None,
-            fuzzy: None,
-            date_from: None,
-            date_to: None,
-            category: None,
-        }
-    }
-
-    /// Set id for QueryOption
-    pub fn id(&mut self, id: i32) -> &Self {
-        self.id = Some(id);
-        self
-    }
-    
-    pub fn fuzzy(&mut self, fuzzy: &str) -> &Self {
-        self.fuzzy = Some(String::from(fuzzy));
-        self
-    }
-
-    pub fn date_from(&mut self, from: NaiveDate) -> &Self {
-        self.date_from = Some(from);
-        self
-    }
-
-    pub fn date_to(&mut self, to: NaiveDate) -> &Self {
-        self.date_to = Some(to);
-        self
-    }
-
-    pub fn category(&mut self, category: &str) -> &Self {
-        self.category = Some(String::from(category));
-        self
-    }
-}
-
 impl Repo {
-    pub fn new(pathOpt: Option<PathBuf>) -> Result<Self> {
-        let conn: Connection;
-        if let Some(p) = pathOpt {
-            conn = Connection::open(p)?;
+
+    pub fn new(url: Option<URL>) -> Result<Self> {
+        let conn;
+        if let Some(u) = url {
+            conn = SqliteConnection::establish(&u.0)?;
         } else {
-            conn = Connection::open_in_memory()?;
+            conn = SqliteConnection::establish(":memory:")?;
         }
         Ok(Repo(conn))
     }
 
     pub fn init(&self) -> Result<()> {
-        let sql = "CREATE TABLE IF NOT EXISTS records (
-            id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
-            name CHAR(50) NOT NULL,
-            cents INTEGER NOT NULL,
-            date TEXT,
-            category CHAR(50),
-            description TEXT
-        )";
-        self.0.execute(sql, ())?;
-        Ok(())
+        todo!()  
     }
-    
+
     pub fn insert(&self, record: &Record) -> Result<()> {
-        let sql = "INSERT INTO records (name, cents, date, category, description) values (?1, ?2
-    , ?3, ?4, ?5)";
-        self.0.execute(sql, params![record.name, record.cents, record.date.format("%Y-%m-%d").to_string(), record.category, record.description])?;
-        Ok(())
+
+        todo!()  
     }
     
     pub fn list_all(&self) -> Result<Vec<Record>> {
-        
-        let sql = "SELECT * FROM records";
-        let mut stmt = self.0.prepare(sql)?;
-        let mapping_fn = |row:& rusqlite::Row| {
-            let date_string:String = row.get(3)?;
-            let date = NaiveDate::parse_from_str(&date_string, "%Y-%m-%d")?;
-            Ok(Record {
-                id: row.get(0)?,
-                name: row.get(1)?,
-                cents: row.get(2)?,
-                date,
-                category: row.get(4)?,
-                description: row.get(5)?,
-            })
-        };
-        let rows = stmt.query_map([], |row| {
-            // ? does not work here as here we need a rusqlite::Result ...
-            // TODO: move repositories to a module where only rusqlite::Result is used
-            let record = mapping_fn(row);
-            if record.is_err() {
-                return Err(rusqlite::Error::InvalidColumnName(String::from("")))
-            }
-            return rusqlite::Result::Ok(record.unwrap())
-        })?;
-        
-        let mut rows_vec = Vec::new();
-        for row in rows {
-            if row.is_ok() {
-                rows_vec.push(row.unwrap())
-            } 
-        }
-
-        Ok(rows_vec)
             
+        todo!()  
     }
 
     pub fn modify(&self, record: &Record) -> Result<Record> {
-        todo!()
+
+        todo!()  
     }
 
 }
+
 #[cfg(test)]
 mod test_repo {
     use super::Record;
@@ -187,7 +89,6 @@ mod test_repo {
         let repo = repo.unwrap();
         let r = repo.init();
         assert!(r.is_ok());
-        // Add all these records into test databas
     
         for r in records.iter() {
             repo.insert(r).unwrap();
