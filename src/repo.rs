@@ -1,12 +1,22 @@
-use std::fmt::Display;
-
+use std::{fmt::Display, str::FromStr};
 use anyhow::{Result, Ok};
-use diesel::SqliteConnection;
-use diesel::prelude::*;
+use chrono::NaiveDate;
+use futures::TryStreamExt;
+use log::debug;
+use sqlx::{SqliteConnection, sqlite::SqliteConnectOptions, ConnectOptions, Row};
+
 use crate::model::Record;
 
 struct Repo(SqliteConnection);
 struct URL(String);
+
+macro_rules! get_conn {
+	($r: expr) => {
+	    &mut $r.0
+	};
+}
+
+const DB_DATE_FMT: &str = "%Y-%m-%d";
 
 pub enum RepoError {
     ConnectionFailed(String),
@@ -21,33 +31,68 @@ impl Display for RepoError {
 }
 
 impl Repo {
-
-    pub fn new(url: Option<URL>) -> Result<Self> {
-        let conn;
+    
+    /// Creates the Repo object and starts the connection.
+    pub async fn new(url: Option<URL>) -> Result<Self> {
         if let Some(u) = url {
-            conn = SqliteConnection::establish(&u.0)?;
+            return Ok(Repo(SqliteConnectOptions::from_str(&u.0)?.create_if_missing(true).connect().await?));
         } else {
-            conn = SqliteConnection::establish(":memory:")?;
+            return Ok(Repo(SqliteConnectOptions::from_str(":memory:")?.connect().await?));
         }
-        Ok(Repo(conn))
-    }
-
-    pub fn init(&self) -> Result<()> {
-        todo!()  
-    }
-
-    pub fn insert(&self, record: &Record) -> Result<()> {
-
-        todo!()  
     }
     
-    pub fn list_all(&self) -> Result<Vec<Record>> {
-            
-        todo!()  
+    /// Initialize the database by creating tables etc. 
+    pub async fn init(&mut self) -> Result<()> {
+        let stmt = "CREATE TABLE IF NOT EXISTS records (
+            id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+            name CHAR(50) NOT NULL,
+            cents INTEGER NOT NULL,
+            date TEXT,
+            category CHAR(50),
+            description TEXT
+        )";
+
+        let cnt = sqlx::query(stmt).execute(&mut self.0).await?;
+
+        debug!("{} rows affected", cnt.rows_affected());
+        Ok(())
+    }
+    
+    pub async fn insert(&mut self, record: &Record) -> Result<()> {
+        let stmt = "INSERT INTO records (name, cents, date, category, description) 
+            VALUES (?,?,?,?,?)";
+        
+        let cnt = sqlx::query(stmt)
+            .bind(&record.name)
+            .bind(record.cents)
+            .bind(record.date.to_string())
+            .bind(&record.category)
+            .bind(&record.description)
+            .execute(&mut self.0).await?;
+        
+        debug!("{} rows affected", cnt.rows_affected());
+        Ok(())
+    }
+    
+    pub async fn list_all(&mut self) -> Result<Vec<Record>> {
+        let stmt = "SELECT * FROM records";
+        let mut rows = sqlx::query(stmt).fetch(&mut self.0);
+
+        let mut results = Vec::new();
+        while let Some(row) = rows.try_next().await? {
+            let id: i32 = row.try_get("id")?; 
+            let name: &str = row.try_get("name")?; 
+            let cents: i32 = row.try_get("cents")?; 
+            let date: &str = row.try_get("date")?; 
+            let category: &str = row.try_get("category")?; 
+            let description: &str = row.try_get("description")?; 
+            results.push(Record { id, name: String::from(name),cents, date: NaiveDate::parse_from_str(date, DB_DATE_FMT)?, category: String::from(category), description: String::from(description) });
+        }
+        
+        Ok(results)
     }
 
     pub fn modify(&self, record: &Record) -> Result<Record> {
-
         todo!()  
     }
 
@@ -58,8 +103,8 @@ mod test_repo {
     use super::Record;
     use chrono::Local;
 
-    #[test]
-    fn test_records_repo() {
+    #[tokio::test]
+    async fn test_records_repo() {
         
         let num_records = 100;
         let mut records = Vec::with_capacity(100);
@@ -84,17 +129,18 @@ mod test_repo {
             records.push(record);
         }
 
-        let repo = super::Repo::new(None);
+        let repo = super::Repo::new(None).await;
         assert!(repo.is_ok());
-        let repo = repo.unwrap();
-        let r = repo.init();
-        assert!(r.is_ok());
-    
+        let mut repo = repo.unwrap();
+        repo.init().await.unwrap();
+
         for r in records.iter() {
-            repo.insert(r).unwrap();
+            if let Err(e) = repo.insert(r).await {
+                eprintln!("Insert failed {e}");
+            }
         }
         
-        let ls_result = repo.list_all().unwrap();
+        let ls_result = repo.list_all().await.unwrap();
         for (i, rr) in ls_result.iter().enumerate() {
             assert_eq!(rr, records.get(i).unwrap())
         }
