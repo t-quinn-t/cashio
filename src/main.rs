@@ -6,7 +6,8 @@
  */
 
 
-use cashio::cli::{Cli, Commands};
+use cashio::{cli::{Cli, Commands}, model::Record};
+use chrono::{Local, NaiveTime, NaiveDate};
 use clap::Parser;
 
 extern crate pretty_env_logger;
@@ -16,6 +17,17 @@ extern crate log;
 fn main() {
     pretty_env_logger::init();
     let cli = Cli::parse();
+
+    let r = Record {
+        id:23,
+        name: String::from("name"),
+        cents:340,
+        date: Local::now().naive_local().date(),
+        category: String::from("hh"),
+        description: String::from("Hello World!"),
+    };
+
+    print_table(vec![r]);
 
     match cli.cmd {
         Commands::Add(cmd) => {

@@ -18,7 +18,7 @@ pub struct Record {
 }
 
 
-fn print_table(records: Vec<Record>) -> Result<()>{
+pub fn print_table(records: Vec<Record>) -> Result<()>{
     let mut t = Vec::new();
     for record in records {
         let mut amount_str = (record.cents/100).to_string();
