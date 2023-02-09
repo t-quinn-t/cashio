@@ -96,19 +96,26 @@ impl Repo {
         todo!()  
     }
 
+    pub fn rm(&self, record: &Record) -> Result<()> {
+        todo!()
+    }
+
+    pub fn find() {
+        todo!()
+    }
 }
 
 #[cfg(test)]
 mod test_repo {
     use super::Record;
     use chrono::Local;
-
-    #[tokio::test]
-    async fn test_records_repo() {
-        
+    
+    fn mk_record(num_records: i32) -> Vec<Record> {
+ 
         let num_records = 100;
         let mut records = Vec::with_capacity(100);
-
+        
+        // TODO: maybe random generated record fields 
         let categories = vec!["default", "grocery", "gifts", "utility"];
         let description_suffixs = vec!["Normal Text:", "Other Text:"];
         for i in 0_usize..num_records {
@@ -128,7 +135,12 @@ mod test_repo {
             };
             records.push(record);
         }
+        records
+    }
 
+    #[tokio::test]
+    async fn test_insert() {
+        let records = mk_record(100);
         let repo = super::Repo::new(None).await;
         assert!(repo.is_ok());
         let mut repo = repo.unwrap();
@@ -145,4 +157,5 @@ mod test_repo {
             assert_eq!(rr, records.get(i).unwrap())
         }
     }
+
 }
