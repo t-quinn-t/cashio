@@ -6,7 +6,7 @@
  */
 
 
-use cashio::{cli::{Cli, Commands}, model::Record};
+use cashio::{cli::{Cli, Commands}, model::{Record, print_table}};
 use chrono::{Local, NaiveTime, NaiveDate};
 use clap::Parser;
 
