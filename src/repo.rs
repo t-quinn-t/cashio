@@ -7,8 +7,8 @@ use sqlx::{SqliteConnection, sqlite::SqliteConnectOptions, ConnectOptions, Row};
 
 use crate::model::Record;
 
-struct Repo(SqliteConnection);
-struct URL(String);
+pub struct Repo(SqliteConnection);
+pub struct URL(String);
 
 macro_rules! get_conn {
 	($r: expr) => {

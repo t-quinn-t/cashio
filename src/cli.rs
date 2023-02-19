@@ -1,3 +1,4 @@
+use chrono::{NaiveDate, Local};
 /*
  * @Author: Quinn Tao @t-quinn-t 
  * @Date: 2023-01-06 15:44:40 
@@ -5,6 +6,8 @@
  * @Last Modified time: 2023-01-06 23:11:07
  */
 use clap::{Parser, Subcommand, Args};
+
+use crate::{model::Record, parser::arg_to_time, repo::{self, Repo}};
 
 #[derive(Parser)]
 #[command(author, version, about, long_about = None)]
@@ -21,6 +24,10 @@ pub enum Commands {
     Rm(RmCmd),
 }
 
+pub trait ExecutableCmd {
+    fn exec(&self) -> Result<(), &'static str>;
+}
+
 /// Add a record to current database
 #[derive(Args, Debug)]
 pub struct AddCmd {
@@ -29,7 +36,7 @@ pub struct AddCmd {
     name: String,
 
     /// Amount of the record
-    amount: i32,
+    amount: String,
 
     /// Date of this record 
     /// 
@@ -49,6 +56,25 @@ pub struct AddCmd {
     /// Full description of this record
     #[arg(short, long)]
     description: Option<String>,
+}
+
+impl ExecutableCmd for AddCmd {
+
+    fn exec(&self) -> Result<(), &'static str> {
+        let mut ret : Record = Record { id: 0, name: String::from(""), cents: 0, date: Local::now().naive_local().date(), category: String::from("default"), description: String::from("") };
+        match &self.date {
+            Some(datestr) => {
+                if let Ok(temp_date) = arg_to_time(&datestr) {
+                    ret.date = temp_date;
+                } else {
+                    panic!("Cannot parse date argument.")
+                }
+            },
+            _ => ()
+        }
+        
+        Ok(())
+    }
 }
 
 /// List records in current database, default to list records in current month

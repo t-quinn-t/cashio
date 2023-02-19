@@ -1,5 +1,3 @@
-use std::fmt::Display;
-
 use anyhow::Result;
 use chrono::prelude::*;
 use cli_table::{Cell, Table, Style};

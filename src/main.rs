@@ -18,21 +18,10 @@ fn main() {
     pretty_env_logger::init();
     let cli = Cli::parse();
 
-    let r = Record {
-        id:23,
-        name: String::from("name"),
-        cents:340,
-        date: Local::now().naive_local().date(),
-        category: String::from("hh"),
-        description: String::from("Hello World!"),
-    };
-
-    print_table(vec![r]);
-
     match cli.cmd {
         Commands::Add(cmd) => {
             debug!("add command {:?}", cmd);
-        
+               
         },
         Commands::Ls(cmd) => {
             debug!("ls command {:?}", cmd);
